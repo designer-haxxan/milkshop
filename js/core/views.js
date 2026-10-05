@@ -1,92 +1,56 @@
-// Reusable view fragments: document links, ledger tables, date filters, balance formatting.
-import { esc, fmtNum, fmtDate, today, monthStart } from './utils.js';
+// Small shared view fragments: money, balances, month labels, empty/loading helpers used by several screens.
+import { esc, fmtMoney, fmtQty } from './utils.js';
 import { getSettings } from './settings.js';
+import { t, locale } from './i18n.js';
 
 export const cur = () => getSettings().currency;
-export const money = (n) => `${esc(cur())} ${fmtNum(n)}`;
+export const money = (n) => `<span class="money">${esc(cur())} ${fmtMoney(n)}</span>`;
+export const moneyText = (n) => `${cur()} ${fmtMoney(n)}`;
+export const unitLabel = (u) => t('unit.' + (u || 'pcs'));
+export const qtyText = (q, unit = 'L') => `${fmtQty(q)} ${unitLabel(unit)}`;
 
-const REF_ROUTES = {
-  sale: (id) => `#/sales/${id}`, purchase: (id) => `#/purchases/${id}`,
-  saleReturn: (id) => `#/returns/sale/${id}`, purchaseReturn: (id) => `#/returns/purchase/${id}`,
-  receipt: (id) => `#/vouchers/${id}`, payment: (id) => `#/vouchers/${id}`, transfer: (id) => `#/vouchers/${id}`,
-};
-export const REF_LABELS = { sale: 'Sale', purchase: 'Purchase', saleReturn: 'Sale return', purchaseReturn: 'Purchase return', receipt: 'Receipt', payment: 'Payment', transfer: 'Transfer', opening: 'Opening balance' };
-
-export function refLink(refType, id, text) {
-  const r = REF_ROUTES[refType];
-  return r ? `<a href="${r(encodeURIComponent(id))}">${esc(text)}</a>` : esc(text);
+export function monthLabel(month) {
+  const [y, m] = month.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
+}
+export function dayLabel(date, opts = { weekday: 'long', day: 'numeric', month: 'long' }) {
+  return new Date(date + 'T00:00:00').toLocaleDateString(locale(), opts);
 }
 
-// Balance with Dr/Cr suffix. debitNormal: true for customers/cash/bank/assets/expenses.
-export function balText(balance, debitNormal = true) {
-  const v = debitNormal ? balance : -balance;
-  if (Math.abs(v) < 0.005) return money(0);
-  return v > 0 ? money(v) : `${money(-v)} ${debitNormal ? 'Cr' : 'Dr'}`;
+// Customer balance chip: they owe us (red), clear (green) or paid in advance.
+export function balChip(total) {
+  if (Math.abs(total) < 0.5) return `<span class="chip ok"><i class="bi bi-check-circle-fill"></i>${esc(t('bal.clear'))}</span>`;
+  return total > 0
+    ? `<span class="chip bad">${esc(t('bal.due'))} ${esc(cur())} ${fmtMoney(total)}</span>`
+    : `<span class="chip">${esc(t('bal.advance'))} ${esc(cur())} ${fmtMoney(-total)}</span>`;
 }
 
-export function dateFilter(from, to, extra = '') {
-  return `<form class="filters date-filter">
-    <div><label class="form-label small mb-0">From</label><input type="date" name="from" class="form-control form-control-sm" value="${esc(from)}"></div>
-    <div><label class="form-label small mb-0">To</label><input type="date" name="to" class="form-control form-control-sm" value="${esc(to)}"></div>
-    ${extra}
-    <div class="d-flex align-items-end gap-1" style="flex:0 0 auto">
-      <div class="btn-group btn-group-sm">
-        <button type="button" class="btn btn-outline-secondary" data-range="today">Today</button>
-        <button type="button" class="btn btn-outline-secondary" data-range="month">Month</button>
-        <button type="button" class="btn btn-outline-secondary" data-range="all">All</button>
-      </div>
-      <button class="btn btn-primary btn-sm">Apply</button>
-    </div></form>`;
-}
-export function rangeFor(key) {
-  if (key === 'today') return [today(), today()];
-  if (key === 'month') return [monthStart(), today()];
-  return ['2000-01-01', today()];
-}
-// Wires the quick-range buttons; calls cb(from, to) on apply.
-export function bindDateFilter($root, cb) {
-  $root.on('click', '.date-filter [data-range]', function () {
-    const [f, t] = rangeFor(this.dataset.range);
-    const $f = $(this).closest('form');
-    $f.find('[name=from]').val(f); $f.find('[name=to]').val(t);
-    $f.trigger('submit');
-  });
-  $root.on('submit', '.date-filter', function (e) {
-    e.preventDefault();
-    const fd = Object.fromEntries(new FormData(this).entries());
-    cb(fd.from || '2000-01-01', fd.to || today(), fd);
-  });
-}
-
-export function ledgerTable(led, { debitNormal = true, showAccount = false, accountName = null } = {}) {
-  const rows = led.rows.map((e) => `<tr>
-      <td class="text-nowrap">${fmtDate(e.date)}</td>
-      <td class="text-nowrap">${refLink(e.refType, e.txnId, e.refNo || '')}<div class="small text-body-secondary">${esc(REF_LABELS[e.refType] || e.refType)}</div></td>
-      ${showAccount ? `<td>${esc(accountName ? accountName(e.accountId) : e.accountId)}</td>` : ''}
-      <td class="small">${esc(e.memo)}</td>
-      <td class="num">${e.debit ? fmtNum(e.debit) : ''}</td>
-      <td class="num">${e.credit ? fmtNum(e.credit) : ''}</td>
-      <td class="num fw-semibold">${balText(e.running, debitNormal)}</td></tr>`).join('');
-  return `<div class="table-responsive"><table class="table table-sm table-hover table-report align-middle mb-0">
-    <thead><tr><th>Date</th><th>Ref</th>${showAccount ? '<th>Account</th>' : ''}<th>Details</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead>
-    <tbody><tr class="table-light"><td colspan="${showAccount ? 6 : 5}">Opening balance</td><td class="num fw-semibold">${balText(led.opening, debitNormal)}</td></tr>
-    ${rows || `<tr><td colspan="${showAccount ? 7 : 6}" class="text-center text-body-secondary py-3">No transactions in this period</td></tr>`}</tbody>
-    <tfoot><tr class="fw-semibold"><td colspan="${showAccount ? 4 : 3}">Totals / closing</td><td class="num">${fmtNum(led.debit)}</td><td class="num">${fmtNum(led.credit)}</td><td class="num">${balText(led.closing, debitNormal)}</td></tr></tfoot>
-    </table></div>`;
-}
-
-// Simple incremental "load more" list rendering (keeps the DOM small).
-export function pager($container, items, rowFn, pageSize = 50, empty = '') {
+// Wire a "Show more" list so long lists stay light.
+export function pager($container, items, rowFn, pageSize = 40, empty = '') {
   let shown = 0;
   const more = () => {
     const chunk = items.slice(shown, shown + pageSize);
     shown += chunk.length;
     $container.find('.pager-more').remove();
     $container.append(chunk.map(rowFn).join(''));
-    if (shown < items.length) $container.append(`<button class="list-row pager-more justify-content-center text-primary">Show more (${items.length - shown} remaining)</button>`);
+    if (shown < items.length) $container.append(`<button class="list-row pager-more justify-content-center text-primary fw-bold">${esc(t('act.more', { n: items.length - shown }))}</button>`);
   };
   $container.empty();
   if (!items.length) { $container.html(empty); return; }
   $container.off('click.pager').on('click.pager', '.pager-more', more);
   more();
+}
+
+// Product → emoji for the shop tiles (name-independent: based on the stored product kind).
+const EMOJI = { milk: '🥛', yogurt: '🥣', lassi: '🥤', cream: '🍶', butter: '🧈', ghee: '🫙' };
+export function productEmoji(p) {
+  if (p.emoji) return p.emoji;
+  if (p.milk) return EMOJI.milk;
+  const n = (p.name || '').toLowerCase();
+  if (/دہی|dahi|yogurt|yoghurt|curd/.test(n)) return EMOJI.yogurt;
+  if (/لسی|lassi/.test(n)) return EMOJI.lassi;
+  if (/ملائی|کریم|cream/.test(n)) return EMOJI.cream;
+  if (/مکھن|butter/.test(n)) return EMOJI.butter;
+  if (/گھی|ghee/.test(n)) return EMOJI.ghee;
+  return p.unit === 'L' ? EMOJI.milk : '🛒';
 }

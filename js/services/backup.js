@@ -1,20 +1,20 @@
 // JSON backup export, validation and restore (replace or merge). Never includes credentials.
 import * as idb from '../db/idb.js';
-import { DATA_STORES, SYSTEM_ACCOUNTS, LEGACY_DB_NAME } from '../db/schema.js';
+import { DATA_STORES, SYSTEM_ACCOUNTS } from '../db/schema.js';
 import { CONFIG } from '../config.js';
 import { getSettings, replaceSettings } from '../core/settings.js';
 import { nowISO, round3, uuid, AppError } from '../core/utils.js';
 import * as Auth from './auth.js';
 import * as Catalog from './catalog.js';
 
-export const FORMAT = 'saleapp-pos-backup';
+export const FORMAT = 'doodhwala-backup';
 
 // Required fields per collection (id/key checked separately).
 const REQUIRED = {
   products: ['name'], customers: ['name'], suppliers: ['name'], accounts: ['name', 'type'], categories: ['name'],
   sales: ['number', 'date', 'total'], saleItems: ['saleId', 'productId', 'qty'], purchases: ['number', 'date', 'total'], purchaseItems: ['purchaseId', 'productId', 'qty'],
   saleReturns: ['number', 'date', 'saleId', 'items'], purchaseReturns: ['number', 'date', 'purchaseId', 'items'], vouchers: ['number', 'date', 'amount'],
-  entries: ['txnId', 'accountId', 'date', 'debit', 'credit'], stockMoves: ['productId', 'date', 'qty', 'refId'], adjustments: ['number', 'date', 'items'],
+  entries: ['txnId', 'accountId', 'date', 'debit', 'credit'], deliveries: ['customerId', 'date', 'status'], stockMoves: ['productId', 'date', 'qty', 'refId'], adjustments: ['number', 'date', 'items'],
 };
 const DOC_STORES = { sales: ['saleItems', 'saleId'], purchases: ['purchaseItems', 'purchaseId'], saleReturns: null, purchaseReturns: null, vouchers: null, adjustments: null };
 const NUMBERED = ['sales', 'purchases', 'saleReturns', 'purchaseReturns', 'vouchers', 'adjustments'];
@@ -44,7 +44,7 @@ export async function createBackup() {
 export function validateBackup(obj) {
   const errors = []; const warnings = [];
   if (!obj || typeof obj !== 'object') return { ok: false, errors: ['The file is not a valid JSON object.'], warnings };
-  if (obj.format !== FORMAT) errors.push('This file is not a SaleAPP POS backup.');
+  if (obj.format !== FORMAT) errors.push('This file is not a Doodh Wala backup.');
   if (!Number.isInteger(obj.backupVersion)) errors.push('Missing backup version.');
   else if (obj.backupVersion > CONFIG.BACKUP_VERSION) errors.push(`This backup was made by a newer app version (backup v${obj.backupVersion}). Update the app first.`);
   if (obj.schemaVersion > CONFIG.SCHEMA_VERSION) errors.push(`Unsupported database schema version ${obj.schemaVersion}.`);
@@ -101,7 +101,7 @@ async function ensureSystemAccounts(t) {
   }
 }
 
-const stamp = (r) => r.updatedAt || r.voidedAt || r.createdAt || '';
+const stamp = (r) => r.updatedAt || r.voidedAt || r.createdAt || r.at || '';
 
 export async function restore(obj, mode, { includeSettings = true } = {}) {
   Auth.require('backup.restore');
@@ -160,7 +160,7 @@ export async function restore(obj, mode, { includeSettings = true } = {}) {
       for (const m of data.stockMoves) if (useBackup.get(moveParent(m))) await t.put('stockMoves', m);
       for (const i of data.saleItems) if (useBackup.get('sales:' + i.saleId)) await t.put('saleItems', i);
       for (const i of data.purchaseItems) if (useBackup.get('purchases:' + i.purchaseId)) await t.put('purchaseItems', i);
-      for (const s of ['categories', 'holds', 'auditLog']) {
+      for (const s of ['categories', 'holds', 'auditLog', 'deliveries']) {
         for (const r of data[s]) { const local = await t.get(s, r.id); if (!local || stamp(r) > stamp(local)) await t.put(s, r); }
       }
       for (const m of data.meta) {
@@ -177,45 +177,4 @@ export async function restore(obj, mode, { includeSettings = true } = {}) {
   await Catalog.load();
   document.dispatchEvent(new CustomEvent('data:changed'));
   return report;
-}
-
-// ---------- Old shared database ----------
-// Older builds (and copies of this app such as AgriSale / pharmaSaleApp) used one database, "saleapp_pos",
-// on the shared designer-haxxan.github.io origin. It is never modified here; it can be imported (merged) once
-// after the user reviews its record counts.
-export async function legacyDataExists() {
-  if (!indexedDB.databases) return false;
-  try { return (await indexedDB.databases()).some((d) => d.name === LEGACY_DB_NAME); } catch { return false; }
-}
-
-// Returns a backup-shaped object with the old data, or null if there is nothing to import.
-export async function readLegacyData() {
-  if (!(await legacyDataExists())) return null;
-  let db;
-  try {
-    db = await new Promise((res, rej) => {
-      const r = indexedDB.open(LEGACY_DB_NAME); // no version: open as-is, never upgrade it
-      r.onupgradeneeded = () => r.transaction.abort(); // it did not exist after all: don't create it
-      r.onsuccess = () => res(r.result);
-      r.onerror = () => rej(r.error);
-    });
-  } catch { return null; }
-  try {
-    db.onversionchange = () => db.close();
-    const stores = DATA_STORES.filter((s) => db.objectStoreNames.contains(s));
-    const data = {};
-    if (stores.length) {
-      await new Promise((res, rej) => {
-        const t = db.transaction(stores, 'readonly');
-        for (const s of stores) { const r = t.objectStore(s).getAll(); r.onsuccess = () => { data[s] = r.result; }; }
-        t.oncomplete = res; t.onerror = () => rej(t.error);
-      });
-    }
-    for (const s of DATA_STORES) data[s] ||= [];
-    const counts = Object.fromEntries(DATA_STORES.map((s) => [s, data[s].length]));
-    const business = ['products', 'customers', 'suppliers', 'sales', 'purchases', 'vouchers'].reduce((n, s) => n + counts[s], 0);
-    if (!business) return null;
-    return { format: FORMAT, backupVersion: CONFIG.BACKUP_VERSION, appVersion: `shared database v${db.version}`, schemaVersion: CONFIG.SCHEMA_VERSION,
-      createdAt: nowISO(), counts, data };
-  } finally { db.close(); }
 }

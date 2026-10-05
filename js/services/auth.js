@@ -4,22 +4,21 @@
 // expiresAt. Passwords are never stored.
 import { CONFIG, storageKey } from '../config.js';
 import { AppError } from '../core/utils.js';
+import { t } from '../core/i18n.js';
 
 const SESSION_KEY = storageKey('session');
 // Device id identifies the PHONE (the server binds the account to it), so it is intentionally shared by all
 // apps on this origin; changing it would make the server reply device_mismatch.
 const DEVICE_KEY = 'minipos.deviceId';
 
-// Exact error codes returned by the API → user-facing messages.
-const ERRORS = {
-  missing_fields: 'Enter your username and password.',
-  invalid_credentials: 'Wrong username or password.',
-  device_mismatch: `This account is already active on another phone. Call ${CONFIG.SUPPORT_PHONE} for help.`,
-  account_disabled: `This account has been disabled. Call ${CONFIG.SUPPORT_PHONE} for help.`,
-};
-const GENERIC = 'Login failed. Try again.';
+// Exact error codes returned by the API → user-facing messages (Urdu / English).
+const errorText = (code) => ({
+  missing_fields: t('login.err.missing'),
+  invalid_credentials: t('login.err.invalid'),
+  device_mismatch: t('login.err.device', { phone: CONFIG.SUPPORT_PHONE }),
+  account_disabled: t('login.err.disabled', { phone: CONFIG.SUPPORT_PHONE }),
+})[code] || t('login.err.generic');
 
-export const ROLES = { admin: 'Owner', manager: 'Manager', cashier: 'Cashier' };
 
 const CASHIER = ['sale.create', 'party.edit', 'voucher.create', 'reports.view'];
 const MANAGER = [...CASHIER, 'sale.edit', 'sale.void', 'sale.return', 'purchase.manage', 'product.edit', 'product.delete',
@@ -57,7 +56,7 @@ export function restoreSession() {
   if (!isValid(s)) {
     localStorage.removeItem(SESSION_KEY);
     current = null;
-    return { user: null, reason: 'Your session has expired. Connect to the internet and sign in again.' };
+    return { user: null, reason: 'expired' };
   }
   current = toUser(s);
   return { user: current };
@@ -73,14 +72,14 @@ export function can(perm) {
   return p.includes('*') || p.includes(perm);
 }
 export function require(perm) {
-  if (!can(perm)) throw new AppError('You do not have permission for this action.', 'FORBIDDEN');
+  if (!can(perm)) throw new AppError(t('err.noperm'), 'FORBIDDEN');
 }
 
 export async function login(username, password) {
   username = String(username ?? '').trim();
   password = String(password ?? '');
-  if (!username || !password) throw new AppError(ERRORS.missing_fields);
-  if (!navigator.onLine) throw new AppError('Internet connection is required to sign in.');
+  if (!username || !password) throw new AppError(errorText('missing_fields'));
+  if (!navigator.onLine) throw new AppError(t('login.err.offline'));
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 20000);
@@ -93,16 +92,16 @@ export async function login(username, password) {
       credentials: 'omit', cache: 'no-store', signal: ctrl.signal,
     });
   } catch {
-    throw new AppError('Could not reach the login server. Check your internet connection and try again.');
+    throw new AppError(t('login.err.network'));
   } finally { clearTimeout(timer); }
 
   let data = null;
   try { data = await res.json(); } catch { /* non-JSON response */ }
-  if (!res.ok) throw new AppError(ERRORS[data?.error] || GENERIC);
+  if (!res.ok) throw new AppError(errorText(data?.error));
 
   const session = { token: data?.token, expiresAt: Number(data?.expiresAt), username: data?.username };
   if (data?.role) session.role = data.role;
-  if (!isValid(session)) throw new AppError(GENERIC);
+  if (!isValid(session)) throw new AppError(t('login.err.generic'));
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   current = toUser(session);
   return current;

@@ -2,15 +2,13 @@
 import { CONFIG } from '../config.js';
 
 export const DB_NAME = `${CONFIG.APP_ID}_pos`;
-// Database name used by older builds (shared with other apps on the same origin). Never modified; only read on import.
-export const LEGACY_DB_NAME = 'saleapp_pos';
 export const DB_VERSION = 1;
 
 // Stores that make up the business data (included in backups).
 export const DATA_STORES = [
   'categories', 'products', 'customers', 'suppliers', 'accounts',
   'sales', 'saleItems', 'purchases', 'purchaseItems', 'saleReturns', 'purchaseReturns',
-  'vouchers', 'entries', 'stockMoves', 'adjustments', 'holds', 'auditLog', 'meta',
+  'vouchers', 'entries', 'stockMoves', 'adjustments', 'holds', 'auditLog', 'deliveries', 'meta',
 ];
 
 const STORES = {
@@ -32,6 +30,9 @@ const STORES = {
   adjustments: { indexes: { number: ['number', true], date: 'date' } },
   holds: { indexes: { createdAt: 'createdAt' } },
   auditLog: { indexes: { at: 'at' } },
+  // One record per house/day/shift (id = customerId:date:shift). billId is set once a monthly bill covers it.
+  // open = 1 while a delivered record is not on any bill yet (a small index, so "who owes what" never scans old history).
+  deliveries: { indexes: { date: 'date', customerId: 'customerId', billId: 'billId', open: 'open', custDate: [['customerId', 'date'], false] } },
 };
 
 export const SYSTEM_ACCOUNTS = [

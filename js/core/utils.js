@@ -1,4 +1,7 @@
 // Small, dependency-free helpers shared by all modules.
+import { getSettings } from './settings.js';
+
+const loc = () => (getSettings().lang === 'en' ? 'en-GB' : 'ur-PK-u-nu-latn');
 
 export const uuid = () =>
   (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -25,19 +28,22 @@ export function monthStart(dateStr = today()) { return dateStr.slice(0, 8) + '01
 export function fmtDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr.length === 10 ? dateStr + 'T00:00:00' : dateStr);
-  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString(loc(), { day: '2-digit', month: 'short', year: 'numeric' });
 }
 export function fmtDateTime(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleString(loc(), { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 export function fmtTime(iso) {
-  return iso ? new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
+  return iso ? new Date(iso).toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }) : '';
 }
 
 const moneyFmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const qtyFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 });
 export const fmtNum = (n) => moneyFmt.format(round2(n || 0));
+const whole = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+// Rupee amounts: no decimals when the value is whole (1,250), two decimals otherwise (1,250.50).
+export const fmtMoney = (n) => { const v = round2(n || 0); return Math.abs(v - Math.round(v)) < 0.005 ? whole.format(Math.round(v)) : moneyFmt.format(v); };
 export const fmtQty = (n) => qtyFmt.format(round3(n || 0));
 
 const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };

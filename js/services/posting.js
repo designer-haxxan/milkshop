@@ -5,6 +5,7 @@ import * as idb from '../db/idb.js';
 import { uuid, round2, round3, num, nowISO, today, AppError, clean, lc, fmtQty } from '../core/utils.js';
 import { getSettings } from '../core/settings.js';
 import * as Auth from './auth.js';
+import { t as tr } from '../core/i18n.js';
 import * as Catalog from './catalog.js';
 
 const EPS = 0.0005;
@@ -125,7 +126,7 @@ export function previewDoc(items, billDiscount, taxRate) {
 }
 
 // ---------- SALES ----------
-const SALE_STORES = ['sales', 'saleItems', 'products', 'stockMoves', 'entries', 'meta', 'customers', 'accounts', 'saleReturns', 'auditLog'];
+const SALE_STORES = ['sales', 'saleItems', 'products', 'stockMoves', 'entries', 'meta', 'customers', 'accounts', 'saleReturns', 'auditLog', 'deliveries'];
 
 export async function saveSale(input) {
   const editing = !!input.editId;
@@ -151,7 +152,7 @@ export async function saveSale(input) {
       await revertDoc(t, ctx, id);
       await t.deleteByIndex('saleItems', 'saleId', id);
     }
-    let customerName = 'Walk-in Customer';
+    let customerName = tr('walkin');
     if (customerId) {
       const c = await t.get('customers', customerId);
       if (!c) throw new AppError('Customer not found.');
@@ -167,9 +168,15 @@ export async function saveSale(input) {
       tendered, paid, change: round2(Math.max(0, tendered - calc.total)), balance: round2(calc.total - paid),
       paymentAccountId: acc.id, paymentAccountName: acc.name,
       paymentType: paid >= calc.total ? 'paid' : paid > 0 ? 'partial' : 'credit',
-      status: 'completed', note: clean(input.note, 500), edited: editing || !!existing?.edited, ...stamp(),
+      status: 'completed', note: clean(input.note, 500), edited: editing || !!existing?.edited, bill: input.bill || existing?.bill || null, ...stamp(),
     };
     await t.put('sales', doc);
+    // Monthly milk bill: mark the delivery records it covers, in this same transaction (no double billing).
+    for (const did of input.deliveryIds || []) {
+      const dv = await t.get('deliveries', did);
+      if (!dv || dv.billId) throw new AppError('A delivery was already billed. Reload and try again.');
+      dv.billId = id; delete dv.open; await t.put('deliveries', dv);
+    }
     let i = 0;
     for (const l of calc.lines) {
       const p = await t.get('products', l.productId);
@@ -219,7 +226,7 @@ export async function savePurchase(input) {
       await revertDoc(t, ctx, id);
       await t.deleteByIndex('purchaseItems', 'purchaseId', id);
     }
-    let supplierName = 'Cash Purchase';
+    let supplierName = tr('by.cash');
     if (supplierId) {
       const sp = await t.get('suppliers', supplierId);
       if (!sp) throw new AppError('Supplier not found.');
@@ -358,11 +365,16 @@ const VOID_DEF = {
   adjustment: { store: 'adjustments', perm: 'stock.adjust' },
 };
 
+// Voiding a monthly bill makes its deliveries billable again.
+async function releaseDeliveries(t, billId) {
+  for (const dv of await t.getAllByIndex('deliveries', 'billId', billId)) { delete dv.billId; if (dv.status === 'done') dv.open = 1; await t.put('deliveries', dv); }
+}
+
 export async function voidDocument(kind, id, reason = '') {
   const def = VOID_DEF[kind];
   Auth.require(def.perm);
   const ctx = newCtx();
-  const stores = [def.store, 'products', 'stockMoves', 'entries', 'auditLog', ...(def.items ? [def.items, def.returns] : [])];
+  const stores = [def.store, 'products', 'stockMoves', 'entries', 'auditLog', 'deliveries', ...(def.items ? [def.items, def.returns] : [])];
   const doc = await idb.write(stores, async (t) => {
     const d = await t.get(def.store, id);
     if (!d) throw new AppError('Document not found.');
@@ -372,6 +384,7 @@ export async function voidDocument(kind, id, reason = '') {
       if (rets.length) throw new AppError('Void the returns of this document first.');
     }
     await revertDoc(t, ctx, id);
+    if (kind === 'sale' && d.bill) await releaseDeliveries(t, id);
     if (def.items) {
       d.voidedItems = await t.getAllByIndex(def.items, def.fk, id);
       await t.deleteByIndex(def.items, def.fk, id);
@@ -453,7 +466,7 @@ export async function saveParty(kind, data) {
   const rec = await idb.write([kind, 'entries', 'auditLog'], async (t) => {
     const old = data.id ? await t.get(kind, id) : null;
     const r = { ...(old || { createdAt: now }), id, name, nameLc: lc(name), phone: clean(data.phone, 40), email, address: clean(data.address, 300),
-      note: clean(data.note, 500), openingBalance: opening, openingDate: data.openingDate || old?.openingDate || today(), active: data.active === false ? 0 : 1, updatedAt: now };
+      note: clean(data.note, 500), milk: data.milk !== undefined ? data.milk : old?.milk, openingBalance: opening, openingDate: data.openingDate || old?.openingDate || today(), active: data.active === false ? 0 : 1, updatedAt: now };
     await t.put(kind, r);
     const acc = partyAccount(kind, id);
     // Customers: opening = receivable (debit). Suppliers: opening = payable (credit).

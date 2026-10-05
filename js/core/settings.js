@@ -2,18 +2,18 @@
 import { storageKey } from '../config.js';
 
 const KEY = storageKey('settings');
-const LEGACY_KEY = 'pos.settings'; // shared by older builds on the same origin; copied once as a starting point
 
 export const DEFAULT_SETTINGS = {
-  business: { name: 'My Store', address: '', phone: '', taxNo: '', footer: 'Thank you for your purchase!' },
+  business: { name: 'دودھ دہی شاپ', address: '', phone: '', taxNo: '', footer: 'شکریہ! دوبارہ تشریف لائیں' },
+  lang: 'ur',
   currency: 'Rs',
   taxEnabled: false,
   taxRate: 0,
-  allowNegativeStock: false,
+  allowNegativeStock: true,
   updatePurchasePrice: true,
   prefixes: { sale: 'SALE', purchase: 'PUR', saleReturn: 'SRN', purchaseReturn: 'PRN', receipt: 'RCV', payment: 'PAY', transfer: 'TRF', adjustment: 'ADJ' },
   printer: { method: 'browser', width: 58, autoPrint: false, copies: 1, chunkSize: 20, imageMode: 'gsv0', deviceName: '', deviceId: '' },
-  theme: 'auto',
+  theme: 'light',
   register: 'Main',
 };
 
@@ -30,7 +30,7 @@ let cache = null;
 export function getSettings() {
   if (!cache) {
     let stored = {};
-    try { stored = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(LEGACY_KEY) || '{}'); } catch { stored = {}; }
+    try { stored = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { stored = {}; }
     cache = merge(DEFAULT_SETTINGS, stored);
   }
   return cache;

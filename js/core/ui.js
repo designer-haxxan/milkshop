@@ -1,5 +1,6 @@
 // UI helpers: toasts, modals, confirm dialogs, pickers, loading & empty states.
 import { esc, debounce } from './utils.js';
+import { t } from './i18n.js';
 
 const $ = window.jQuery;
 
@@ -23,7 +24,7 @@ export function modal({ title, body = '', footer = null, size = '', scrollable =
     <div class="modal-dialog ${size ? 'modal-' + size : ''} ${scrollable ? 'modal-dialog-scrollable' : ''} ${fullscreenMobile ? 'modal-fullscreen-sm-down' : ''} modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header py-2"><h5 class="modal-title">${esc(title)}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="${esc(t('act.close'))}"></button></div>
         <div class="modal-body">${body}</div>
         ${footer !== null ? `<div class="modal-footer py-2">${footer}</div>` : ''}
       </div></div></div>`);
@@ -35,13 +36,13 @@ export function modal({ title, body = '', footer = null, size = '', scrollable =
 }
 
 // Form dialog. onSubmit receives (values, $el); return a value to close, throw to show an error.
-export function formModal({ title, body, submitLabel = 'Save', submitClass = 'btn-primary', size = '', onSubmit, onShown }) {
+export function formModal({ title, body, submitLabel = t('act.save'), submitClass = 'btn-primary', size = '', onSubmit, onShown }) {
   return new Promise((resolve) => {
     let result = null;
     const m = modal({
       title, size,
       body: `<form novalidate autocomplete="off">${body}<div class="alert alert-danger py-2 small d-none form-error mt-3 mb-0"></div><button type="submit" class="d-none"></button></form>`,
-      footer: `<button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+      footer: `<button type="button" class="btn btn-light" data-bs-dismiss="modal">${esc(t('act.cancel'))}</button>
                <button type="button" class="btn ${submitClass} btn-submit">${esc(submitLabel)}</button>`,
     });
     const $f = m.$el.find('form');
@@ -69,13 +70,13 @@ export function formModal({ title, body, submitLabel = 'Save', submitClass = 'bt
   });
 }
 
-export function confirmDialog(message, { title = 'Please confirm', okLabel = 'Confirm', okClass = 'btn-primary', html = false } = {}) {
+export function confirmDialog(message, { title = t('confirm.title'), okLabel = t('act.ok'), okClass = 'btn-primary', html = false } = {}) {
   return new Promise((resolve) => {
     let ok = false;
     const m = modal({
       title, fullscreenMobile: false, scrollable: false,
       body: html ? message : `<p class="mb-0">${esc(message)}</p>`,
-      footer: `<button class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn ${okClass} btn-ok">${esc(okLabel)}</button>`,
+      footer: `<button class="btn btn-light" data-bs-dismiss="modal">${esc(t('act.cancel'))}</button><button class="btn ${okClass} btn-ok">${esc(okLabel)}</button>`,
     });
     m.$el.find('.btn-ok').on('click', () => { ok = true; m.close(); });
     m.closed.then(() => resolve(ok));
@@ -83,7 +84,7 @@ export function confirmDialog(message, { title = 'Please confirm', okLabel = 'Co
 }
 
 // Searchable list picker. search(q) => [{id, title, subtitle, right, value}]
-export function pick({ title, search, noneLabel = null, placeholder = 'Search…', addNew = null }) {
+export function pick({ title, search, noneLabel = null, placeholder = t('search'), addNew = null }) {
   return new Promise((resolve) => {
     let result; // undefined = cancelled
     const m = modal({
@@ -99,7 +100,7 @@ export function pick({ title, search, noneLabel = null, placeholder = 'Search…
       m.$el.find('.pick-list').html(items.length ? items.map((it, i) => `
         <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2" data-i="${i}">
           <div class="text-truncate me-2"><div class="fw-semibold text-truncate">${esc(it.title)}</div>${it.subtitle ? `<div class="small text-body-secondary text-truncate">${esc(it.subtitle)}</div>` : ''}</div>
-          ${it.right ? `<div class="small text-nowrap">${esc(it.right)}</div>` : ''}</button>`).join('') : emptyState('No matches found', 'search'));
+          ${it.right ? `<div class="small text-nowrap">${esc(it.right)}</div>` : ''}</button>`).join('') : emptyState(t('empty.nomatch'), 'search'));
     };
     m.$el.on('input', '.pick-q', debounce(render, 150));
     m.$el.on('keydown', '.pick-q', (e) => { if (e.key === 'Enter' && items.length) { e.preventDefault(); result = items[0]; m.close(); } });
@@ -125,7 +126,7 @@ export function errorState(err) {
   return `<div class="alert alert-danger m-3"><i class="bi bi-exclamation-octagon me-2"></i>${esc(err?.message || err)}</div>`;
 }
 // Skeleton placeholder while a page loads (text is kept for screen readers).
-export const spinner = (text = 'Loading…') => `<div class="skeleton py-2" role="status" aria-label="${esc(text)}">
+export const spinner = (text = t('loading')) => `<div class="skeleton py-2" role="status" aria-label="${esc(text)}">
   <div class="skel" style="height:28px;width:40%"></div><div class="skel" style="height:110px"></div>
   <div class="d-flex gap-2"><div class="skel flex-fill" style="height:70px"></div><div class="skel flex-fill" style="height:70px"></div></div>
   <div class="skel" style="height:220px"></div></div>`;
@@ -161,7 +162,7 @@ export function countUp(root, fmt) {
 }
 
 let loadingCount = 0;
-export function loading(on, text = 'Please wait…') {
+export function loading(on, text = t('wait')) {
   loadingCount = Math.max(0, loadingCount + (on ? 1 : -1));
   $('#loading-overlay').toggleClass('d-none', loadingCount === 0).find('.loading-text').text(text);
 }
@@ -172,7 +173,7 @@ export async function withLoading(fn, text) {
 
 export function pageHeader(title, actions = '', back = null) {
   return `<div class="page-header d-flex align-items-center gap-2 mb-3">
-    ${back ? `<a href="${esc(back)}" class="btn btn-light btn-sm" aria-label="Back"><i class="bi bi-arrow-left"></i></a>` : ''}
+    ${back ? `<a href="${esc(back)}" class="btn btn-light btn-sm" aria-label="${esc(t('act.back'))}"><i class="bi bi-arrow-left"></i></a>` : ''}
     <h1 class="h5 mb-0 flex-grow-1 text-truncate">${esc(title)}</h1>
     <div class="d-flex gap-2 flex-shrink-0">${actions}</div></div>`;
 }
@@ -190,3 +191,19 @@ export function beep() {
   } catch { /* audio unavailable */ }
   if (navigator.vibrate) navigator.vibrate(40);
 }
+
+// Little burst of coloured dots from an element (feedback when a house is marked delivered). Skipped for reduced motion.
+export function confetti(el) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const r = el.getBoundingClientRect(); const cx = r.left + r.width / 2; const cy = r.top + r.height / 2;
+  const colors = ['#22c55e', '#0b6fd0', '#fbbf24', '#f472b6', '#14b8a6'];
+  for (let i = 0; i < 12; i++) {
+    const d = document.createElement('i'); d.className = 'confetti';
+    const a = (Math.PI * 2 * i) / 12; const dist = 40 + Math.random() * 40;
+    d.style.cssText = `left:${cx}px;top:${cy}px;background:${colors[i % colors.length]};--dx:${Math.cos(a) * dist}px;--dy:${Math.sin(a) * dist}px`;
+    document.body.appendChild(d); setTimeout(() => d.remove(), 900);
+  }
+}
+
+// Big animated tick for "saved" screens.
+export const doneTick = () => '<div class="done-anim"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/><path d="M28 52 l15 15 l30 -32"/></svg></div>';
