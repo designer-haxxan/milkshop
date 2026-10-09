@@ -6,6 +6,7 @@ import { esc } from './core/utils.js';
 import { openDB } from './db/idb.js';
 import * as Auth from './services/auth.js';
 import * as Catalog from './services/catalog.js';
+import { CONFIG } from './config.js';
 
 const $ = window.jQuery;
 
@@ -166,6 +167,7 @@ function showLogin(reason = '') {
   showView('login');
   renderConn();
   $('#login-notice').toggleClass('d-none', !reason).html(esc(reason));
+  $('#app-version').text(`Version ${CONFIG.APP_VERSION}`);
   setTimeout(() => $('#login-username').trigger('focus'), 50);
 }
 
