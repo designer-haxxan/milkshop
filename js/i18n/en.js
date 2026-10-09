@@ -27,6 +27,7 @@ export default {
   'nav.settings': 'Settings', 'nav.backup': 'Backup',
   'sec.main': 'Daily work', 'sec.people': 'People', 'sec.accounts': 'Accounts', 'sec.admin': 'Admin',
 
+  'login.autofill': 'Username and password are filled in. Just tap Sign in.',
   'login.title': 'Welcome', 'login.sub': 'Enter your username and password', 'login.user': 'Username', 'login.pass': 'Password',
   'login.btn': 'Sign in', 'login.wait': 'Please wait…',
   'login.hint': 'Internet is needed the first time. After that the app also works without internet.',

@@ -147,6 +147,9 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 .field-action { position: absolute; inset-inline-end: 4px; top: 8px; min-height: 44px; color: var(--bs-secondary-color); }
 .btn-login { min-height: 60px; font-size: 1.25rem; border-radius: 18px; }
 
+@keyframes pulseBtn { 0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, .6); transform: scale(1); } 50% { box-shadow: 0 0 0 14px rgba(22, 163, 74, 0); transform: scale(1.03); } }
+.btn-login.pulse-hint { background: linear-gradient(135deg, #22c55e, #15803d); animation: pulseBtn 1.4s ease-in-out infinite; }
+
 /* ================= App shell ================= */
 #view-app { display: flex; min-height: 100vh; }
 #sidebar { width: var(--sidebar-w); position: fixed; inset-block: 0; inset-inline-start: 0; background: var(--surface); border-inline-end: 1px solid var(--bs-border-color); z-index: 100; }

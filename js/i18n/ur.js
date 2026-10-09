@@ -29,6 +29,7 @@ export default {
   'sec.main': 'روزانہ کام', 'sec.people': 'لوگ', 'sec.accounts': 'حساب', 'sec.admin': 'انتظام',
 
   // login
+  'login.autofill': 'یوزر نیم اور پاس ورڈ خود بخود بھر دیے گئے ہیں۔ بس لاگ ان دبائیں',
   'login.title': 'خوش آمدید', 'login.sub': 'اپنا یوزر نام اور پاسورڈ لکھیں', 'login.user': 'یوزر نام', 'login.pass': 'پاسورڈ',
   'login.btn': 'اندر جائیں', 'login.wait': 'انتظار کریں…',
   'login.hint': 'پہلی بار انٹرنیٹ چاہیے۔ اس کے بعد بغیر انٹرنیٹ بھی چلتا ہے۔',
