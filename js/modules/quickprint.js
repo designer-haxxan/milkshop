@@ -49,6 +49,7 @@ export default {
       const label = $label.val().trim();
       try {
         const s = getSettings();
+        const width = (s.printer && s.printer.width) || 58; // default to 58mm if not configured
         // Build a receipt model for the price tag
         const doc = {
           header: label ? [label] : [],
@@ -58,11 +59,11 @@ export default {
           footer: ''
         };
         // Use the proven receipt functions that handle Urdu and all printer types
-        const bytes = await toEscPos(doc, s.printer.width);
-        const html = toHTML(doc, s.printer.width);
+        const bytes = await toEscPos(doc, width);
+        const html = toHTML(doc, width);
 
         // Print using the routing function that handles Bluetooth, RawBT, or browser
-        await Printer.printBytes(bytes, html, { width: s.printer.width });
+        await Printer.printBytes(bytes, html, { width });
         UI.toast(t('qp.printed'));
         $price.val('').focus();
         $label.val('');
