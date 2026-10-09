@@ -50,18 +50,24 @@ export default {
       try {
         const s = getSettings();
         const width = (s.printer && s.printer.width) || 58; // default to 58mm if not configured
-        // Build a receipt model for the price tag
-        const header = [s.business && s.business.name ? s.business.name : ''];
+        // Build a receipt model for the price tag with shop info
+        const header = [s.business && s.business.name ? s.business.name : ''].filter(Boolean);
+        const info = [];
+        if (s.business && s.business.address) info.push([t('rc.address') || 'Address', s.business.address]);
+        if (s.business && s.business.phone) info.push([t('rc.tel') || 'Phone', s.business.phone]);
         if (label) header.push(label);
+
         const doc = {
-          header: header.filter(Boolean),
+          header: header,
           title: `${cur} ${fmtMoney(price)}`,
           items: [],
           totals: [],
-          footer: (s.business && s.business.footer) || ''
+          footer: (s.business && s.business.footer) || '',
+          info: info
         };
         // Use the proven receipt functions that handle Urdu and all printer types
-        const bytes = await toEscPos(doc, width);
+        // Quick print uses less blank space (feed: 1) than full receipts (feed: 3)
+        const bytes = await toEscPos(doc, width, { feed: 1 });
         const html = toHTML(doc, width);
 
         // Print using the routing function that handles Bluetooth, RawBT, or browser

@@ -60,7 +60,7 @@ export async function buildReceipt(kind, doc) {
 }
 
 // Async because Urdu/non-Latin lines are rendered with the Jameel Noori Nastaleeq web font.
-export async function toEscPos(m, width = 58) {
+export async function toEscPos(m, width = 58, { feed = 3 } = {}) {
   await Raster.ensureFont();
   const printerSettings = getSettings().printer || {};
   const p = new EscPos(width, Raster, { imageMode: printerSettings.imageMode || 'gsv0' });
@@ -84,7 +84,7 @@ export async function toEscPos(m, width = 58) {
   if (m.note) { p.hr(); p.wrap(t('rc.note') + ': ' + m.note); }
   p.hr().align('center');
   if (m.footer) p.wrap(m.footer);
-  p.feed(3).cut();
+  p.feed(feed).cut();
   return p.bytes();
 }
 
