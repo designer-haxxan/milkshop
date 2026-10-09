@@ -65,21 +65,21 @@ export async function toEscPos(m, width = 58) {
   const p = new EscPos(width, Raster, { imageMode: getSettings().printer.imageMode });
   const cur = getSettings().currency;
   p.align('center');
-  m.header.forEach((h, i) => { if (i === 0) p.bold(true).size(true).wrap(h, Math.floor(p.cols / 2)).size(false).bold(false); else p.wrap(h); });
+  (m.header || []).forEach((h, i) => { if (i === 0) p.bold(true).size(true).wrap(h, Math.floor(p.cols / 2)).size(false).bold(false); else p.wrap(h); });
   p.hr().bold(true).line(m.title).bold(false);
   if (m.void) p.bold(true).line('*** VOID ***').bold(false);
   p.align('left');
-  m.info.forEach(([k, v]) => p.lr(k + ':', String(v ?? '')));
-  if (m.items.length) {
+  (m.info || []).forEach(([k, v]) => p.lr(k + ':', String(v ?? '')));
+  if ((m.items || []).length) {
     p.hr();
-    m.items.forEach((i) => {
+    (m.items || []).forEach((i) => {
       p.wrap(i.name);
       p.lr(`  ${fmtQty(i.qty)} ${i.unit || ''} x ${fmtMoney(i.rate)}`, fmtMoney(i.amount));
       if (i.discount) p.lr('  ' + t('rc.discount'), '-' + fmtMoney(i.discount));
     });
   }
   p.hr();
-  m.totals.forEach(([k, v, strong]) => { if (strong) p.bold(true); p.lr(k, `${v < 0 ? '-' : ''}${cur} ${fmtMoney(Math.abs(v))}`); if (strong) p.bold(false); });
+  (m.totals || []).forEach(([k, v, strong]) => { if (strong) p.bold(true); p.lr(k, `${v < 0 ? '-' : ''}${cur} ${fmtMoney(Math.abs(v))}`); if (strong) p.bold(false); });
   if (m.note) { p.hr(); p.wrap(t('rc.note') + ': ' + m.note); }
   p.hr().align('center');
   if (m.footer) p.wrap(m.footer);
@@ -93,12 +93,16 @@ const tx = (s) => (isPlain(s) ? esc(s) : `<span class="ur" dir="auto">${esc(s)}<
 export function toHTML(m, width = 58) {
   const cur = esc(getSettings().currency);
   const row = (l, r, cls = '') => `<tr class="${cls}"><td>${l}</td><td class="r">${r}</td></tr>`;
+  const header = m.header || [];
+  const info = m.info || [];
+  const items = m.items || [];
+  const totals = m.totals || [];
   return `<div class="receipt w${Number(width) === 80 ? 80 : 58}">
-    ${m.header.map((h, i) => `<div class="c ${i === 0 ? 'b big' : ''}">${tx(h)}</div>`).join('')}
+    ${header.map((h, i) => `<div class="c ${i === 0 ? 'b big' : ''}">${tx(h)}</div>`).join('')}
     <hr><div class="c b">${tx(m.title)}</div>${m.void ? '<div class="c b">*** VOID ***</div>' : ''}
-    <table>${m.info.map(([k, v]) => row(tx(k) + ':', tx(v))).join('')}</table>
-    ${m.items.length ? '<hr><table>' + m.items.map((i) => `<tr><td colspan="2">${tx(i.name)}</td></tr>${row('&nbsp;&nbsp;' + tx(`${fmtQty(i.qty)} ${i.unit || ''} x ${fmtMoney(i.rate)}`), fmtMoney(i.amount))}${i.discount ? row('&nbsp;&nbsp;' + tx(t('rc.discount')), '-' + fmtMoney(i.discount)) : ''}`).join('') + '</table>' : ''}
-    <hr><table>${m.totals.map(([k, v, strong]) => row(tx(k), `${v < 0 ? '-' : ''}${cur} ${fmtMoney(Math.abs(v))}`, strong ? 'b' : '')).join('')}
+    <table>${info.map(([k, v]) => row(tx(k) + ':', tx(v))).join('')}</table>
+    ${items.length ? '<hr><table>' + items.map((i) => `<tr><td colspan="2">${tx(i.name)}</td></tr>${row('&nbsp;&nbsp;' + tx(`${fmtQty(i.qty)} ${i.unit || ''} x ${fmtMoney(i.rate)}`), fmtMoney(i.amount))}${i.discount ? row('&nbsp;&nbsp;' + tx(t('rc.discount')), '-' + fmtMoney(i.discount)) : ''}`).join('') + '</table>' : ''}
+    <hr><table>${totals.map(([k, v, strong]) => row(tx(k), `${v < 0 ? '-' : ''}${cur} ${fmtMoney(Math.abs(v))}`, strong ? 'b' : '')).join('')}
     </table>
     ${m.note ? `<hr><div>${esc(t('rc.note'))}: ${tx(m.note)}</div>` : ''}
     <hr>${m.footer ? `<div class="c">${tx(m.footer)}</div>` : ''}</div>`;
