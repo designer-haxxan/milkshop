@@ -71,15 +71,16 @@ export function render(width, specs, { double = false, bold = false } = {}) {
   const px = double ? 48 : 34; // Nastaleeq needs a larger size than Latin to stay legible at 203 dpi
   const probe = document.createElement('canvas').getContext('2d');
   const rows = [];
-  for (const spec of specs) {
+  for (const spec of (specs || [])) {
+    if (!spec) continue;
     if (spec.wrap !== undefined) {
       const align = spec.align === 'left' && isRTL(spec.wrap) ? 'right' : spec.align || 'left';
       for (const line of wrapWords(probe, spec.wrap, width - 4, px, bold, double)) rows.push([{ text: line, align }]);
-    } else {
-      const parts = spec.parts.filter((p) => p.text);
+    } else if (spec.parts) {
+      const parts = (spec.parts || []).filter((p) => p && p.text);
       const total = parts.reduce((s, p) => s + measure(probe, p.text, px, bold, double), 0) + 16;
-      if (parts.length > 1 && total > width) parts.forEach((p) => rows.push([p])); // too wide: one part per row
-      else rows.push(parts);
+      if (parts.length > 1 && total > width) (parts || []).forEach((p) => rows.push([p])); // too wide: one part per row
+      else if (parts.length) rows.push(parts);
     }
   }
   const widthBytes = Math.ceil(width / 8);
