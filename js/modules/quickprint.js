@@ -51,12 +51,14 @@ export default {
         const s = getSettings();
         const width = (s.printer && s.printer.width) || 58; // default to 58mm if not configured
         // Build a receipt model for the price tag
+        const header = [s.business && s.business.name ? s.business.name : ''];
+        if (label) header.push(label);
         const doc = {
-          header: label ? [label] : [],
+          header: header.filter(Boolean),
           title: `${cur} ${fmtMoney(price)}`,
           items: [],
           totals: [],
-          footer: ''
+          footer: (s.business && s.business.footer) || ''
         };
         // Use the proven receipt functions that handle Urdu and all printer types
         const bytes = await toEscPos(doc, width);
