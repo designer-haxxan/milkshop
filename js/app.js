@@ -15,6 +15,7 @@ const ROUTES = {
   delivery: [() => import('./modules/delivery.js'), 'nav.delivery', null, 'bicycle', 'sec.main'],
   shop: [() => import('./modules/shop.js'), 'nav.shop', 'sale.create', 'shop', 'sec.main'],
   bills: [() => import('./modules/bills.js'), 'nav.bills', null, 'receipt-cutoff', 'sec.main'],
+  quickprint: [() => import('./modules/quickprint.js'), 'nav.quickprint', null, 'tags-fill', 'sec.main'],
   customers: [() => import('./modules/customers.js'), 'nav.customers', null, 'people-fill', 'sec.people'],
   buy: [() => import('./modules/buy.js'), 'nav.buy', 'purchase.manage', 'truck', 'sec.people'],
   money: [() => import('./modules/money.js'), 'nav.money', 'voucher.create', 'cash-coin', 'sec.accounts'],

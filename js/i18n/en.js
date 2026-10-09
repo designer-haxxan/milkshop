@@ -24,7 +24,7 @@ export default {
 
   'nav.home': 'Home', 'nav.delivery': 'Delivery', 'nav.shop': 'Shop', 'nav.bills': 'Bills', 'nav.more': 'More', 'nav.menu': 'Menu',
   'nav.customers': 'Customers', 'nav.buy': 'Buy Milk', 'nav.money': 'Money', 'nav.profit': 'Profit', 'nav.products': 'Items & Rates',
-  'nav.settings': 'Settings', 'nav.backup': 'Backup',
+  'nav.settings': 'Settings', 'nav.backup': 'Backup', 'nav.quickprint': 'Quick Print',
   'sec.main': 'Daily work', 'sec.people': 'People', 'sec.accounts': 'Accounts', 'sec.admin': 'Admin',
 
   'login.autofill': 'Username and password are filled in. Just tap Sign in.',
@@ -153,4 +153,7 @@ export default {
   'rc.prev': 'Previous balance', 'rc.advance': 'Previous advance', 'rc.totalDue': 'TOTAL DUE', 'rc.subtotal': 'Subtotal', 'rc.discount': 'Discount',
   'rc.total': 'TOTAL', 'rc.tendered': 'Cash received', 'rc.paid': 'Paid', 'rc.change': 'Change', 'rc.balance': 'Balance due', 'rc.against': 'Against',
   'rc.from': 'Received from', 'rc.to': 'Paid to', 'rc.note': 'Note', 'rc.amount': 'AMOUNT',
+
+  // quickprint
+  'qp.enterPrice': 'Enter price', 'qp.label': 'Label or name', 'qp.labelHint': 'e.g. "Milk" or blank', 'qp.preview': 'Preview', 'qp.print': 'Print', 'qp.priceRequired': 'Enter a price (greater than 0)', 'qp.printed': 'Printed',
 };

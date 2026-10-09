@@ -7,7 +7,7 @@ const isOwnCache = (key) => key.startsWith(`${APP_ID}-`);
 const SHELL = [
   './', './index.html', './manifest.json', './css/app.css',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png',
-  './js/app.js', './js/autofill.js', './js/config.js',
+  './js/app.js', './js/autofill.js', './js/config.js', './js/modules/quickprint.js',
   './js/core/i18n.js', './js/core/settings.js', './js/core/ui.js', './js/core/utils.js', './js/core/views.js',
   './js/i18n/ur.js', './js/i18n/en.js',
   './js/db/idb.js', './js/db/schema.js',

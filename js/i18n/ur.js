@@ -25,7 +25,7 @@ export default {
   // navigation
   'nav.home': 'ہوم', 'nav.delivery': 'ڈیلیوری', 'nav.shop': 'دکان', 'nav.bills': 'بل', 'nav.more': 'مزید', 'nav.menu': 'فہرست',
   'nav.customers': 'گاہک', 'nav.buy': 'دودھ خرید', 'nav.money': 'رقم', 'nav.profit': 'منافع', 'nav.products': 'سامان اور ریٹ',
-  'nav.settings': 'سیٹنگ', 'nav.backup': 'بیک اپ',
+  'nav.settings': 'سیٹنگ', 'nav.backup': 'بیک اپ', 'nav.quickprint': 'کوئیک پرنٹ',
   'sec.main': 'روزانہ کام', 'sec.people': 'لوگ', 'sec.accounts': 'حساب', 'sec.admin': 'انتظام',
 
   // login
@@ -168,4 +168,7 @@ export default {
   'rc.prev': 'پچھلا بقایا', 'rc.advance': 'پچھلا ایڈوانس', 'rc.totalDue': 'کل بقایا', 'rc.subtotal': 'میزان', 'rc.discount': 'رعایت',
   'rc.total': 'کل', 'rc.tendered': 'وصول رقم', 'rc.paid': 'ادا', 'rc.change': 'واپسی', 'rc.balance': 'بقایا', 'rc.against': 'بمقابلہ',
   'rc.from': 'وصول از', 'rc.to': 'ادا بنام', 'rc.note': 'نوٹ', 'rc.amount': 'رقم',
+
+  // quickprint
+  'qp.enterPrice': 'قیمت لکھیں', 'qp.label': 'لیبل یا نام', 'qp.labelHint': 'مثلاً "دودھ" یا خالی', 'qp.preview': 'دیکھیں', 'qp.print': 'پرنٹ کریں', 'qp.priceRequired': 'قیمت لکھیں (0 سے زیادہ)', 'qp.printed': 'پرنٹ ہو گیا',
 };
