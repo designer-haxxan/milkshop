@@ -2,7 +2,7 @@
    Bump VERSION whenever any cached file changes; clients update automatically. */
 // Cache names are namespaced: other apps on designer-haxxan.github.io share Cache Storage with this one.
 const APP_ID = 'doodhwala';
-const VERSION = `${APP_ID}-v2.0.3`;
+const VERSION = `${APP_ID}-v2.0.4`;
 const isOwnCache = (key) => key.startsWith(`${APP_ID}-`);
 const SHELL = [
   './', './index.html', './manifest.json', './css/app.css',
