@@ -4,8 +4,7 @@ import { esc, fmtMoney } from '../core/utils.js';
 import { t } from '../core/i18n.js';
 import { getSettings } from '../core/settings.js';
 import * as Printer from '../printer/printer.js';
-import { EscPos } from '../printer/escpos.js';
-import * as Raster from '../printer/raster.js';
+import { toEscPos, toHTML } from '../printer/receipt.js';
 
 const $ = window.jQuery;
 
@@ -50,17 +49,17 @@ export default {
       const label = $label.val().trim();
       try {
         const s = getSettings();
-        await Raster.ensureFont();
-        const p = new EscPos(s.printer.width, Raster, { imageMode: s.printer.imageMode });
-        p.align('center').bold(true).size(true)
-          .line(label || t('qp.label'))
-          .size(false).bold(false).hr()
-          .bold(true).size(2).line(`${cur} ${fmtMoney(price)}`)
-          .size(false).bold(false).feed(2).cut();
-        const bytes = p.bytes();
-
-        // Build HTML for browser print fallback
-        const html = `<div class="receipt w${s.printer.width}"><div class="c b big">${esc(label || t('qp.label'))}</div><hr><div class="c b" style="font-size:1.5em;margin:1em 0">${cur} ${fmtMoney(price)}</div></div>`;
+        // Build a receipt model for the price tag
+        const doc = {
+          header: label ? [label] : [],
+          title: `${cur} ${fmtMoney(price)}`,
+          items: [],
+          totals: [],
+          footer: ''
+        };
+        // Use the proven receipt functions that handle Urdu and all printer types
+        const bytes = await toEscPos(doc, s.printer.width);
+        const html = toHTML(doc, s.printer.width);
 
         // Print using the routing function that handles Bluetooth, RawBT, or browser
         await Printer.printBytes(bytes, html, { width: s.printer.width });
