@@ -186,7 +186,14 @@ export function printHTML(html, { page = 'auto', width = null } = {}) {
   area.innerHTML = html;
   const style = document.createElement('style');
   style.id = 'print-page-style';
-  style.textContent = width ? `@page { size: ${width}mm auto; margin: 2mm; }` : `@page { size: ${page}; margin: 10mm; }`;
+  const pageRule = width ? `@page { size: ${width}mm auto; margin: 2mm; }` : `@page { size: ${page}; margin: 10mm; }`;
+  const receiptStyles = `.receipt { font-family: 'Jameel Noori Nastaleeq', 'Courier New', monospace; color: #000; background: #fff; font-size: 12px; line-height: 1.3; margin: 0 auto; direction: ltr; }
+.receipt.w58 { width: 48mm; } .receipt.w80 { width: 72mm; }
+.receipt .c { text-align: center; } .receipt .r { text-align: right; } .receipt .b { font-weight: bold; } .receipt .big { font-size: 15px; }
+.receipt .ur { font-size: 1.6em; line-height: 1.7; unicode-bidi: plaintext; } .receipt .c .ur, .receipt .r .ur { display: inline-block; }
+.receipt hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; opacity: 1; }
+.receipt table { width: 100%; border-collapse: collapse; } .receipt td { vertical-align: top; padding: 0; }`;
+  style.textContent = pageRule + '\n' + receiptStyles;
   document.head.appendChild(style);
   const cleanup = () => { area.innerHTML = ''; style.remove(); window.removeEventListener('afterprint', cleanup); };
   window.addEventListener('afterprint', cleanup);
