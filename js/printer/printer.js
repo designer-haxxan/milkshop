@@ -238,3 +238,8 @@ export async function testPrint() {
   await output(bytes, () => html, s.printer.width);
 }
 
+// Print raw ESC/POS bytes to the configured printer (Bluetooth, RawBT, or browser dialog).
+export async function printBytes(bytes, html, { width = 58 } = {}) {
+  await output(() => Promise.resolve(bytes), () => html, width);
+}
+
