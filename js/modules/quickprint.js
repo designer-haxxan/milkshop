@@ -1,10 +1,12 @@
-// Quick print (کوئیک پرنٹ): large price display, print via Bluetooth thermal printer.
+// Quick print (کوئیک پرنٹ): large price display, print via Bluetooth thermal printer, auto-record sales.
 import * as UI from '../core/ui.js';
-import { esc, fmtMoney } from '../core/utils.js';
+import { esc, fmtMoney, uuid, num } from '../core/utils.js';
 import { t } from '../core/i18n.js';
 import { getSettings } from '../core/settings.js';
 import * as Printer from '../printer/printer.js';
 import { toEscPos, toHTML } from '../printer/receipt.js';
+import * as Posting from '../services/posting.js';
+import * as Catalog from '../services/catalog.js';
 
 const $ = window.jQuery;
 
@@ -72,7 +74,30 @@ export default {
 
         // Print using the routing function that handles Bluetooth, RawBT, or browser
         await Printer.printBytes(bytes, html, { width });
-        UI.toast(t('qp.printed'));
+
+        // Auto-create a sale record for the quick print amount
+        try {
+          // Find or create a Quick Sale product
+          let product = Catalog.allProducts().find(p => p.name === 'Quick Sale');
+          if (!product) {
+            // Create a Quick Sale product if it doesn't exist (non-tracked, for quick prices)
+            product = await Posting.saveProduct({ name: 'Quick Sale', unit: 'pcs', salePrice: price, purchasePrice: 0, trackStock: false });
+          }
+
+          // Create a quick sale transaction
+          await Posting.saveSale({
+            id: uuid(),
+            customerId: null, // walk-in sale
+            date: new Date().toISOString().split('T')[0],
+            items: [{ productId: product.id, name: label || product.name, qty: 1, rate: price }],
+            tendered: price, // assume full payment in cash
+            note: `Quick Print: ${label || product.name}`
+          });
+        } catch (saleErr) {
+          console.warn('Failed to record sale:', saleErr);
+        }
+
+        UI.toast(t('qp.printed') + ' · ' + t('saved'));
         $price.val('').focus();
         $label.val('');
         $preview.addClass('d-none');
